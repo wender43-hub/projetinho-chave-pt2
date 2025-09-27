@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biblioteca Digital</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Estilo base para usar a fonte Inter */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Efeito de scroll suave */
+        html {
+            scroll-behavior: smooth;
+        }
+        /* Estilo para a barra de rolagem */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #111827; /* Cor de fundo mais escura para combinar com gray-900 */
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+        }
+        /* Garantindo que as imagens preencham o card e tenham a proporção correta */
+        .book-cover {
+            aspect-ratio: 2/3;
+            object-fit: cover;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white">
+
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
+        <header class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-extrabold text-cyan-400 mb-2">Minha Biblioteca Digital</h1>
+            <p class="text-lg text-gray-400">Explore, pesquise e leia seus livros favoritos em PDF.</p>
+        </header>
+
+        <!-- Seção de Filtros e Pesquisa (Sticky) -->
+        <div class="mb-10 p-4 bg-gray-800 rounded-xl shadow-2xl sticky top-4 z-10 border border-gray-700">
+            <div class="flex flex-col md:flex-row md:items-center gap-4">
+                
+                <!-- Input de Pesquisa Aprimorado com Botão de Limpar -->
+                <div class="relative flex-grow">
+                    <input type="text" id="searchInput" placeholder="Pesquisar por título ou autor..." class="w-full bg-gray-700 text-white placeholder-gray-400 rounded-lg py-3 pl-10 pr-12 focus:outline-none focus:ring-4 focus:ring-cyan-500/50 transition duration-300 shadow-inner">
+                    <!-- Ícone de Lupa -->
+                    <svg class="w-6 h-6 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                    </svg>
+                    <!-- NOVO: Botão para limpar a pesquisa -->
+                    <button id="clearSearchBtn" class="hidden absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-red-400 focus:outline-none p-1 rounded-full bg-gray-700/50" aria-label="Limpar Pesquisa">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+
+                <!-- Dropdown de Gênero -->
+                <div class="relative flex items-center md:w-1/4">
+                    <label for="genreFilter" class="sr-only">Filtrar por Gênero</label>
+                    <select id="genreFilter" class="w-full md:w-auto bg-gray-700 text-gray-200 rounded-lg py-3 px-4 pr-10 appearance-none cursor-pointer focus:outline-none focus:ring-4 focus:ring-cyan-500/50 transition duration-300 shadow-inner">
+                        <!-- Opções serão adicionadas via JavaScript -->
+                    </select>
+                    <!-- Ícone de Seta para o Dropdown -->
+                    <svg class="w-5 h-5 text-gray-400 absolute right-3 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06L10 12.06l-4.77-4.77a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grade de Livros -->
+        <main id="bookGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 sm:gap-8">
+        </main>
+    
+        <!-- Mensagem de Sem Resultados -->
+        <div id="noResultsMessage" class="hidden text-center py-16">
+            <h2 class="text-3xl font-bold text-gray-500 mb-2">Ops!</h2>
+            <p class="text-gray-400 mt-2">Nenhum livro corresponde à sua pesquisa ou filtro de gênero.</p>
+        </div>
+
+    </div>
+
+    <script>
+        // Variável global para armazenar a chave API do Gemini (se necessário)
+        const apiKey = "";
+        
+        // --- INÍCIO DA ÁREA DE CONFIGURAÇÃO DE DADOS (100 LIVROS) ---
+        const books = [
+            // LIVROS ORIGINAIS (ID 1 - 37)
+            {
+                id: 1,
+                title: "A sutil arte de ligar o foda-se",
+                author: "Mark Manson",
+                genre: "Auto ajuda",
+                coverImage: "https://m.media-amazon.com/images/I/6175IU0qFgL._SL1000_.jpg",
+                pdfUrl: "https://drive.google.com/file/d/1j7_17M4OckBQ6KOydEs3WqzNAZYqhRNt/view?usp=drive_link"
+            },
+            {
+                id: 2,
+                title: "Duna",
+                author: "Frank Herbert",
+                genre: "Ficção Científica",
+                coverImage: "https://m.media-amazon.com/images/I/81zN7udGRUL._SL1500_.jpg",
+                pdfUrl: "https://dagobah.com.br/wp-content/uploads/2022/08/100-DIAS-Duna.pdf"
+            },
+            {
+                id: 3,
+                title: "O Hobbit",
+                author: "J.R.R. Tolkien",
+                genre: "Fantasia",
+                coverImage: "https://m.media-amazon.com/images/I/91M9xPIf10L._SL1500_.jpg",
+                pdfUrl: "https://drive.google.com/file/d/1lhtULK8COssKZT2glmbJ_2S2pHksgiHU/view?usp=drive_link"
+            },
+            {
+                id: 4,
+                title: "A Guerra dos Tronos",
+                author: "George R. R. Martin",
+                genre: "Fantasia",
+                coverImage: "https://m.media-amazon.com/images/I/91+1SUO3vUL._SL1500_.jpg",
+                pdfUrl: "https://drive.google.com/file/d/1cASGTEq1r6srr_s63InA36_64NO2RzAd/view?usp=drive_link"
+            },
+            {
+                id: 5,
+                title: "O Assassinato no Expresso do Oriente",
+                author: "Agatha Christie",
+                genre: "Mistério",
+                coverImage: "https://m.media-amazon.com/images/I/81Zp6MFxIDL._SL1500_.jpg",
+                pdfUrl: "https://bibliopedra.wordpress.com/wp-content/uploads/2015/09/assassinato-no-expresso-do-oriente.pdf"
+            },
+            {
+                id: 6,
+                title: "O Código Da Vinci",
+                author: "Dan Brown",
+                genre: "Mistério",
+                coverImage: "https://m.media-amazon.com/images/I/416lvPCh0cL._SY445_SX342_.jpg",
+                pdfUrl: "https://www.museusdepernambuco.pe.gov.br/files/space/2234/149-o-codigo-da-vinci-dan-brown.pdf"
+            },
+            {
+                id: 7,
+                title: "Sapiens: Uma Breve História da Humanidade",
+                author: "Yuval Noah Harari",
+                genre: "Não Ficção",
+                coverImage: "https://m.media-amazon.com/images/I/41FU42ESk5L._SY445_SX342_.jpg",
+                pdfUrl: "https://maurooliveira.blog/wp-content/uploads/2019/12/pdf-sapiens-uma-breve-hsitc3b3ria-da-humanidade.pdf"
+            },
+            {
+                id: 8,
+                title: "1984",
+                author: "George Orwell",
+                genre: "Ficção Científica",
+                coverImage: "https://m.media-amazon.com/images/I/51VXYaKO-sL._SY445_SX342_.jpg",
+                pdfUrl: "https://multimidia.gazetadopovo.com.br/media/info/2022/202209/1984/e-book-1984.pdf"
+            },
+            {
+                id: 9,
+                title: "O Senhor dos Anéis sociedade do anél",
+                author: "J.R.R. Tolkien",
+                genre: "Fantasia",
+                coverImage: "https://m.media-amazon.com/images/I/81hCVEC0ExL._SL1500_.jpg",
+                pdfUrl: "https://agendadasbugigangas.wordpress.com/wp-content/uploads/2011/05/o-senhor-dos-anc3a9is-a-sociedade-do-anel.pdf"
+            },
+            {
+                id: 10,
+                title: "Uma Mente Brilhante",
+                author: "Sylvia Nasar",
+                genre: "Não Ficção",
+                coverImage: "https://m.media-amazon.com/images/I/A15C4NGBKrL._SL1500_.jpg",
+                pdfUrl: "https://cdn.bookey.app/files/pdf/book/pt/uma-mente-brilhante.pdf"
+            },
+            {
+                id: 11,
+                title: "Orgulho e Preconceito",
+                author: "Jane Austen",
+                genre: "Romance",
+                coverImage: "https://m.media-amazon.com/images/I/51lC3sHYyML._SY445_SX342_.jpg",
+                pdfUrl: "https://reciclaleitores.com.br/wp-content/uploads/2020/10/ORGULHO-E-PRECONCEITO-Austen-Jane.pdf"
+            },
+            {
+                id: 12,
+                title: "O Iluminado",
+                author: "Stephen King",
+                genre: "Terror",
+                coverImage: "https://www.stephenking.com.br/wp-content/uploads/2011/11/nova-cultural.jpg",
+                pdfUrl: "https://www.eecarvalhosenne.com.br/wp-content/uploads/2020/10/O-iluminado-Stephen-King.pdf"
+            },
+            {
+                id: 13,
+                title: "Cosmos",
+                author: "Carl Sagan",
+                genre: "Divulgação Científica",
+                coverImage: "https://m.media-amazon.com/images/I/71zVhbnKmfL._SL1500_.jpg",
+                pdfUrl: "https://ia601200.us.archive.org/11/items/cosmos_de_carl_sagan/cosmos_de_carl_sagan.pdf"
+            },
+            {
+                id: 14,
+                title: "A Revolução dos Bichos",
+                author: "George Orwell",
+                genre: "Fábula",
+                coverImage: "https://m.media-amazon.com/images/I/514Dv-LqaQL._SY445_SX342_.jpg",
+                pdfUrl: "https://multimidia.gazetadopovo.com.br/media/info/2021/202110/bichos/revolucao-dos-bichos.pdf"
+            },
+            {
+                id: 15,
+                title: "O Diário de Anne Frank",
+                author: "Anne Frank",
+                genre: "Biográfico",
+                coverImage: "https://m.media-amazon.com/images/I/512UR+rt83L._SY445_SX342_.jpg",
+                pdfUrl: "https://diegodelpasso.com/wp-content/uploads/2016/05/o-dic3a1rio-de-anne-frank.pdf"
+            },
+            {
+                id: 16,
+                title: "Cem Anos de Solidão",
+                author: "Gabriel García Márquez",
+                genre: "Realismo Mágico",
+                coverImage: "https://m.media-amazon.com/images/I/511NRhFHZbL._SY445_SX342_.jpg",
+                pdfUrl: "https://iedamagri.wordpress.com/wp-content/uploads/2014/07/gabriel_garcia_marquez_-_100_anos_de_solidao1.pdf"
+            },
+            {
+                id: 17,
+                title: "O chamado de cthulhu ",
+                author: "H.P Lovecraft",
+                genre: "Terror",
+                coverImage: "https://m.media-amazon.com/images/I/51t-2xkikXL._SY445_SX342_.jpg",
+                pdfUrl: "http://www.filosofianerd.com.br/pdf/lovecraft_chamado_cthulhu.pdf"
+            },
+            {
+                id: 18,
+                title: "O Apanhador no Campo de Centeio",
+                author: "J.D. Salinger",
+                genre: "Clássico",
+                coverImage: "https://m.media-amazon.com/images/I/71b3GDZMzSL._SL1229_.jpg",
+                pdfUrl: "https://bibliopedra.wordpress.com/wp-content/uploads/2015/09/apanhador-no-campo-de-centeio-o-jerome-david-salinger.pdf"
+            },
+            {
+                id: 19,
+                title: "O Nome do Vento",
+                author: "Patrick Rothfuss",
+                genre: "Fantasia",
+                coverImage: "https://m.media-amazon.com/images/I/51VaihnlMrL._SY445_SX342_.jpg",
+                pdfUrl: "https://cdn.bookey.app/files/pdf/book/pt/o-nome-do-vento.pdf"
+            },
+            {
+                id: 20,
+                title: "A menina que roubava livros",
+                author: "Markus Zusak",
+                genre: "Drama",
+                coverImage: "https://m.media-amazon.com/images/I/41pVlY-bbaL._SY445_SX342_.jpg",
+                pdfUrl: "https://docs.google.com/file/d/0BxnyD0AkGuejVWhRRDhCblNHQm8/edit?resourcekey=0-d9St1_DH1yXLOODADYHvqA"
+            },
+            {
+                id: 21,
+                title: "Berserk",
+                author: "Kentaro Miura",
+                genre: "Fantasia",
+                coverImage: "https://m.media-amazon.com/images/I/91rdTtLWAHL._SL1500_.jpg",
+                pdfUrl: "https://cdn.bookey.app/files/pdf/book/pt/berserk-volume-1.pdf"
+            },
+            {
+                id: 22,
+                title: "É Assim que Acaba",
+                author: "Colleen Hoover",
+                genre: "Romance",
+                coverImage: "https://m.media-amazon.com/images/I/91r5G8RxqfL._SL1500_.jpg",
+                pdfUrl: "https://101livros.com/wp-content/uploads/2022/03/E-Assim-que-Acaba-E-Assim-que-Acaba-1-Colleen-Hoover.pdf"
+            },
+            {
+                id: 23,
+                title: "Dom Casmurro",
+                author: "Machado de Assis",
+                genre: "Romance",
+                coverImage: "https://m.media-amazon.com/images/I/61Z2bMhGicL._SL1360_.jpg",
+                pdfUrl: "https://ddcus.org/pdf/summer_reading/11th_grade/Dom_Casmurro-Machado_de_Assis.pdf"
+            },
+            {
+                id: 24,
+                title: "A hora da estrela",
+                author: "Clarisse Lispector",
+                genre: "Romance",
+                coverImage: "https://m.media-amazon.com/images/I/51nM4WcjNrL._SY445_SX342_.jpg",
+                pdfUrl: "https://www.assisprofessor.com.br/documentos/livros/Clarice%20Lispector%20-%20A%20Hora%20da%20Estrela.pdf"
+            },
+            {
+                id: 25,
+                title: "Memórias póstumas brás Cuba",
+                author: "Machado de Assis",
+                genre: "Romance",
+                coverImage: "https://m.media-amazon.com/images/I/815u+SBDpJL._SL1500_.jpg",
+                pdfUrl: "https://murilo-gotardo.github.io/biblioteca-ifc-videira/img/pdfs/memoriasBras.pdf"
+            },
+            {
+                id: 26,
+                title: "A Guerra dos mundos",
+                author: "H. G. Wells",
+                genre: "Ficção Científica",
+                coverImage: "https://m.media-amazon.com/images/I/91r3rBPFgcS._SL1500_.jpg",
+                pdfUrl: "https://www.uel.br/pessoal/jneto/gradua/historia/recdida/GuerradosMundosJNETO.pdf"
+            },
+            {
+                id: 27,
+                title: "Ainda Estou Aqui",
+                author: "Marcelo Rubens Paiva",
+                genre: "Biográfico",
+                coverImage: "https://m.media-amazon.com/images/I/41qGJ9aSNWL._SY445_SX342_.jpg",
+                pdfUrl: "https://drive.google.com/file/d/171Yg9vkzYmX32COgpKo65wmJ6Qq0oVZW/view"
+            },
+            {
+                id: 28,
+                title: "O suicídio",
+                author: "Emile Durkheim",
+                genre: "Sociologia",
+                coverImage: "https://m.media-amazon.com/images/I/71JPGWHAUiL._SL1500_.jpg",
+                pdfUrl: "https://pedropeixotoferreira.wordpress.com/wp-content/uploads/2015/02/durkheim_2000_o-suicidio_bookmfontes.pdf"
+            },
+            {
+                id: 29,
+                title: "Harry Potter e a Pedra Filosofal",
+                author: "J. K. Rowling",
+                genre: "Fantasia Juvenil",
+                coverImage: "https://m.media-amazon.com/images/I/81ibfYk4qmL._SL1500_.jpg",
+                pdfUrl: "https://static.tumblr.com/kvvdpco/ZNXm8ij2e/j.k._rowling_-_1_-_harry_potter_e_a_pedra_filosofal.pdf"
+            },
+            {
+                id: 30,
+                title: "Coraline",
+                author: "Neil Gaiman",
+                genre: "Fantasia",
+                coverImage: "https://m.media-amazon.com/images/I/818565mPygL._SL1500_.jpg",
+                pdfUrl: "https://drive.google.com/file/d/1Q4WvPnLxZemN6gvt3LcJZ9poJUtEDdcu/view"
+            },
+            {
+                id: 31,
+                title: "Fahrenheit 451",
+                author: "Ray Bradbury",
+                genre: "Ficção Científica",
+                coverImage: "https://m.media-amazon.com/images/I/51tAD6LyZ-L.jpg",
+                pdfUrl: "https://letrasufpr.wordpress.com/wp-content/uploads/2016/08/fahrenheit-451-ray-bradbury.pdf"
+            },
+            {
+                id: 32,
+                title: "Turma da Monica Jovem",
+                author: "Mauricio de Souza",
+                genre: "HQs",
+                coverImage: "https://m.media-amazon.com/images/I/61M9LFihkIL._UF1000,1000_QL80_.jpg",
+                pdfUrl: "https://agendadasbugigangas.wordpress.com/wp-content/uploads/2011/05/turma-da-monica-jovem-nc2ba-29.pdf"
+            },
+            {
+                id: 33,
+                title: "senhor dos anéis as duas torres",
+                author: "J.R.R Tolkien",
+                genre: "Fantasia",
+                coverImage: "https://m.media-amazon.com/images/I/81lQ5N0QwJL._SL1500_.jpg",
+                pdfUrl: "https://www.planetadelivros.pt/libros_contenido_extra/47/46735_1_as_duas_torres_1cap.pdf"
+            },
+            {
+                id: 34,
+                title: "Harry Potter e as Relíquias da Morte",
+                author: "J.K. Rowling",
+                genre: "Fantasia Juvenil",
+                coverImage: "https://m.media-amazon.com/images/I/81PHloIwKnL.jpg",
+                pdfUrl: "https://mail.elginbematech.com.br/processobook/Book%20Bematech%20Fev-2020/Bematech/Leitura%20Online/Livros/86-%20Harry%20Potter%20e%20as%20Reliquias%20da%20%20Morte.pdf"
+            },
+            {
+                id: 35,
+                title: "Ps. Eu te amo",
+                author: "Cecelia Ahern",
+                genre: "Romance",
+                coverImage: "https://m.media-amazon.com/images/I/51++cSUFfoL._SY445_SX342_.jpg",
+                pdfUrl: "https://static.tumblr.com/cehnl2g/tzhmlq0d3/cecelia_ahern_-_p.s._eu_te_amo__1_.pdf"
+            },
+            {
+                id: 36,
+                title: "O Pequeno Príncipe",
+                author: "Antoine de Saint-Exupéry",
+                genre: "Fábula",
+                coverImage: "https://m.media-amazon.com/images/I/41afCn3PQUL._SY445_SX342_.jpg",
+                pdfUrl: "https://drive.google.com/file/d/1i517gNv2bRGchdjT4OZQofEqtl5JLuPn/view"
+            },
+            {
+                id: 37,
+                title: "O senhor dos Anéis: O retorno do rei",
+                author: "J. R. R. Tolkien",
+                genre: "Fantasia",
+                coverImage: "https://m.media-amazon.com/images/I/71+4uDgt8JL._SL1500_.jpg",
+                pdfUrl: "https://drive.google.com/file/d/16SEtMmcWc3pEXo4nhff-2BQlCQgJREm4/view?usp=drive_link"
+            },
+            
+            // NOVOS LIVROS ADICIONADOS (ID 38 - 100)
+            {
+                id: 38,
+                title: "Viagem ao Centro da Terra",
+                author: "Júlio Verne",
+                genre: "Ficção Científica",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+38",
+                pdfUrl: "https://example.com/placeholder-book-38.pdf"
+            },
+            {
+                id: 39,
+                title: "Crônicas de Nárnia: O Leão, a Feiticeira e o Guarda-Roupa",
+                author: "C.S. Lewis",
+                genre: "Fantasia Juvenil",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+39",
+                pdfUrl: "https://example.com/placeholder-book-39.pdf"
+            },
+            {
+                id: 40,
+                title: "Crime e Castigo",
+                author: "Fiódor Dostoiévski",
+                genre: "Clássico",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+40",
+                pdfUrl: "https://example.com/placeholder-book-40.pdf"
+            },
+            {
+                id: 41,
+                title: "A Paciente Silenciosa",
+                author: "Alex Michaelides",
+                genre: "Thriller",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+41",
+                pdfUrl: "https://example.com/placeholder-book-41.pdf"
+            },
+            {
+                id: 42,
+                title: "O Mundo de Sofia",
+                author: "Jostein Gaarder",
+                genre: "Filosofia",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+42",
+                pdfUrl: "https://example.com/placeholder-book-42.pdf"
+            },
+            {
+                id: 43,
+                title: "A Estrada",
+                author: "Cormac McCarthy",
+                genre: "Drama",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+43",
+                pdfUrl: "https://example.com/placeholder-book-43.pdf"
+            },
+            {
+                id: 44,
+                title: "Neuromancer",
+                author: "William Gibson",
+                genre: "Ficção Científica",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+44",
+                pdfUrl: "https://example.com/placeholder-book-44.pdf"
+            },
+            {
+                id: 45,
+                title: "A Arte da Guerra",
+                author: "Sun Tzu",
+                genre: "Não Ficção",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+45",
+                pdfUrl: "https://example.com/placeholder-book-45.pdf"
+            },
+            {
+                id: 46,
+                title: "O Conde de Monte Cristo",
+                author: "Alexandre Dumas",
+                genre: "Clássico",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+46",
+                pdfUrl: "https://example.com/placeholder-book-46.pdf"
+            },
+            {
+                id: 47,
+                title: "O Labirinto do Fauno",
+                author: "Guillermo del Toro",
+                genre: "Fantasia",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+47",
+                pdfUrl: "https://example.com/placeholder-book-47.pdf"
+            },
+            {
+                id: 48,
+                title: "Garota Exemplar",
+                author: "Gillian Flynn",
+                genre: "Thriller",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+48",
+                pdfUrl: "https://example.com/placeholder-book-48.pdf"
+            },
+            {
+                id: 49,
+                title: "O Poder do Hábito",
+                author: "Charles Duhigg",
+                genre: "Auto ajuda",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+49",
+                pdfUrl: "https://example.com/placeholder-book-49.pdf"
+            },
+            {
+                id: 50,
+                title: "Admirável Mundo Novo",
+                author: "Aldous Huxley",
+                genre: "Ficção Científica",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+50",
+                pdfUrl: "https://example.com/placeholder-book-50.pdf"
+            },
+            {
+                id: 51,
+                title: "Os Miseráveis",
+                author: "Victor Hugo",
+                genre: "Clássico",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+51",
+                pdfUrl: "https://example.com/placeholder-book-51.pdf"
+            },
+            {
+                id: 52,
+                title: "A Casa dos Espíritos",
+                author: "Isabel Allende",
+                genre: "Realismo Mágico",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+52",
+                pdfUrl: "https://example.com/placeholder-book-52.pdf"
+            },
+            {
+                id: 53,
+                title: "Frankenstein",
+                author: "Mary Shelley",
+                genre: "Terror",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+53",
+                pdfUrl: "https://example.com/placeholder-book-53.pdf"
+            },
+            {
+                id: 54,
+                title: "O Retrato de Dorian Gray",
+                author: "Oscar Wilde",
+                genre: "Clássico",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+54",
+                pdfUrl: "https://example.com/placeholder-book-54.pdf"
+            },
+            {
+                id: 55,
+                title: "Flores para Algernon",
+                author: "Daniel Keyes",
+                genre: "Ficção Científica",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+55",
+                pdfUrl: "https://example.com/placeholder-book-55.pdf"
+            },
+            {
+                id: 56,
+                title: "Mulherzinhas",
+                author: "Louisa May Alcott",
+                genre: "Romance",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+56",
+                pdfUrl: "https://example.com/placeholder-book-56.pdf"
+            },
+            {
+                id: 57,
+                title: "O Vendedor de Sonhos",
+                author: "Augusto Cury",
+                genre: "Auto ajuda",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+57",
+                pdfUrl: "https://example.com/placeholder-book-57.pdf"
+            },
+            {
+                id: 58,
+                title: "A Metamorfose",
+                author: "Franz Kafka",
+                genre: "Clássico",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+58",
+                pdfUrl: "https://example.com/placeholder-book-58.pdf"
+            },
+            {
+                id: 59,
+                title: "O Sol é para Todos",
+                author: "Harper Lee",
+                genre: "Drama",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+59",
+                pdfUrl: "https://example.com/placeholder-book-59.pdf"
+            },
+            {
+                id: 60,
+                title: "Guia do Mochileiro das Galáxias",
+                author: "Douglas Adams",
+                genre: "Ficção Científica",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+60",
+                pdfUrl: "https://example.com/placeholder-book-60.pdf"
+            },
+            {
+                id: 61,
+                title: "A Cor Púrpura",
+                author: "Alice Walker",
+                genre: "Drama",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+61",
+                pdfUrl: "https://example.com/placeholder-book-61.pdf"
+            },
+            {
+                id: 62,
+                title: "Em Busca do Tempo Perdido",
+                author: "Marcel Proust",
+                genre: "Clássico",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+62",
+                pdfUrl: "https://example.com/placeholder-book-62.pdf"
+            },
+            {
+                id: 63,
+                title: "O Pássaro que Gira a Chave",
+                author: "Haruki Murakami",
+                genre: "Fantasia",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+63",
+                pdfUrl: "https://example.com/placeholder-book-63.pdf"
+            },
+            {
+                id: 64,
+                title: "Caixa de Pássaros",
+                author: "Josh Malerman",
+                genre: "Terror",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+64",
+                pdfUrl: "https://example.com/placeholder-book-64.pdf"
+            },
+            {
+                id: 65,
+                title: "O Ladrão de Raios (Percy Jackson 1)",
+                author: "Rick Riordan",
+                genre: "Fantasia Juvenil",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+65",
+                pdfUrl: "https://example.com/placeholder-book-65.pdf"
+            },
+            {
+                id: 66,
+                title: "Breves Respostas para Grandes Questões",
+                author: "Stephen Hawking",
+                genre: "Divulgação Científica",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+66",
+                pdfUrl: "https://example.com/placeholder-book-66.pdf"
+            },
+            {
+                id: 67,
+                title: "O Cemitério",
+                author: "Stephen King",
+                genre: "Terror",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+67",
+                pdfUrl: "https://example.com/placeholder-book-67.pdf"
+            },
+            {
+                id: 68,
+                title: "As Mil e Uma Noites",
+                author: "Desconhecido",
+                genre: "Fantasia",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+68",
+                pdfUrl: "https://example.com/placeholder-book-68.pdf"
+            },
+            {
+                id: 69,
+                title: "A Insustentável Leveza do Ser",
+                author: "Milan Kundera",
+                genre: "Drama",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+69",
+                pdfUrl: "https://example.com/placeholder-book-69.pdf"
+            },
+            {
+                id: 70,
+                title: "O Estrangeiro",
+                author: "Albert Camus",
+                genre: "Clássico",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+70",
+                pdfUrl: "https://example.com/placeholder-book-70.pdf"
+            },
+            {
+                id: 71,
+                title: "O Alquimista",
+                author: "Paulo Coelho",
+                genre: "Auto ajuda",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+71",
+                pdfUrl: "https://example.com/placeholder-book-71.pdf"
+            },
+            {
+                id: 72,
+                title: "A Hospedeira",
+                author: "Stephenie Meyer",
+                genre: "Ficção Científica",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+72",
+                pdfUrl: "https://example.com/placeholder-book-72.pdf"
+            },
+            {
+                id: 73,
+                title: "Histórias Extraordinárias",
+                author: "Edgar Allan Poe",
+                genre: "Mistério",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+73",
+                pdfUrl: "https://example.com/placeholder-book-73.pdf"
+            },
+            {
+                id: 74,
+                title: "A Biblioteca da Meia-Noite",
+                author: "Matt Haig",
+                genre: "Drama",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+74",
+                pdfUrl: "https://example.com/placeholder-book-74.pdf"
+            },
+            {
+                id: 75,
+                title: "Mitologia Nórdica",
+                author: "Neil Gaiman",
+                genre: "Fantasia",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+75",
+                pdfUrl: "https://example.com/placeholder-book-75.pdf"
+            },
+            {
+                id: 76,
+                title: "O Morro dos Ventos Uivantes",
+                author: "Emily Brontë",
+                genre: "Romance",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+76",
+                pdfUrl: "https://example.com/placeholder-book-76.pdf"
+            },
+            {
+                id: 77,
+                title: "Siddhartha",
+                author: "Hermann Hesse",
+                genre: "Clássico",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+77",
+                pdfUrl: "https://example.com/placeholder-book-77.pdf"
+            },
+            {
+                id: 78,
+                title: "O Nome da Rosa",
+                author: "Umberto Eco",
+                genre: "Mistério",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+78",
+                pdfUrl: "https://example.com/placeholder-book-78.pdf"
+            },
+            {
+                id: 79,
+                title: "Memórias de uma Gueixa",
+                author: "Arthur Golden",
+                genre: "Drama",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+79",
+                pdfUrl: "https://example.com/placeholder-book-79.pdf"
+            },
+            {
+                id: 80,
+                title: "Blade Runner: Androides Sonham com Ovelhas Elétricas?",
+                author: "Philip K. Dick",
+                genre: "Ficção Científica",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+80",
+                pdfUrl: "https://example.com/placeholder-book-80.pdf"
+            },
+            {
+                id: 81,
+                title: "A Menina Submersa",
+                author: "Caitlín R. Kiernan",
+                genre: "Terror",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+81",
+                pdfUrl: "https://example.com/placeholder-book-81.pdf"
+            },
+            {
+                id: 82,
+                title: "Cidades de Papel",
+                author: "John Green",
+                genre: "Romance Juvenil",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+82",
+                pdfUrl: "https://example.com/placeholder-book-82.pdf"
+            },
+            {
+                id: 83,
+                title: "A História Sem Fim",
+                author: "Michael Ende",
+                genre: "Fantasia Juvenil",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+83",
+                pdfUrl: "https://example.com/placeholder-book-83.pdf"
+            },
+            {
+                id: 84,
+                title: "O Capital",
+                author: "Karl Marx",
+                genre: "Sociologia",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+84",
+                pdfUrl: "https://example.com/placeholder-book-84.pdf"
+            },
+            {
+                id: 85,
+                title: "O Perfume",
+                author: "Patrick Süskind",
+                genre: "Thriller",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+85",
+                pdfUrl: "https://example.com/placeholder-book-85.pdf"
+            },
+            {
+                id: 86,
+                title: "O Retorno dos Deuses",
+                author: "Rick Riordan",
+                genre: "Fantasia Juvenil",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+86",
+                pdfUrl: "https://example.com/placeholder-book-86.pdf"
+            },
+            {
+                id: 87,
+                title: "O Caçador de Pipas",
+                author: "Khaled Hosseini",
+                genre: "Drama",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+87",
+                pdfUrl: "https://example.com/placeholder-book-87.pdf"
+            },
+            {
+                id: 88,
+                title: "Revolução e Utopia",
+                author: "Vários Autores",
+                genre: "História",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+88",
+                pdfUrl: "https://example.com/placeholder-book-88.pdf"
+            },
+            {
+                id: 89,
+                title: "A Culpa é das Estrelas",
+                author: "John Green",
+                genre: "Romance Juvenil",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+89",
+                pdfUrl: "https://example.com/placeholder-book-89.pdf"
+            },
+            {
+                id: 90,
+                title: "O Tempo e o Vento",
+                author: "Erico Verissimo",
+                genre: "Clássico",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+90",
+                pdfUrl: "https://example.com/placeholder-book-90.pdf"
+            },
+            {
+                id: 91,
+                title: "Boxe: A Luta pela Vida",
+                author: "Mike Tyson",
+                genre: "Biográfico",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+91",
+                pdfUrl: "https://example.com/placeholder-book-91.pdf"
+            },
+            {
+                id: 92,
+                title: "A Batalha do Apocalipse",
+                author: "Eduardo Spohr",
+                genre: "Fantasia",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+92",
+                pdfUrl: "https://example.com/placeholder-book-92.pdf"
+            },
+            {
+                id: 93,
+                title: "O Exorcista",
+                author: "William Peter Blatty",
+                genre: "Terror",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+93",
+                pdfUrl: "https://example.com/placeholder-book-93.pdf"
+            },
+            {
+                id: 94,
+                title: "O Milagre da Manhã",
+                author: "Hal Elrod",
+                genre: "Auto ajuda",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+94",
+                pdfUrl: "https://example.com/placeholder-book-94.pdf"
+            },
+            {
+                id: 95,
+                title: "A Odisseia",
+                author: "Homero",
+                genre: "Clássico",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+95",
+                pdfUrl: "https://example.com/placeholder-book-95.pdf"
+            },
+            {
+                id: 96,
+                title: "O Mágico de Oz",
+                author: "L. Frank Baum",
+                genre: "Fantasia Juvenil",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+96",
+                pdfUrl: "https://example.com/placeholder-book-96.pdf"
+            },
+            {
+                id: 97,
+                title: "O Conto da Aia",
+                author: "Margaret Atwood",
+                genre: "Ficção Científica",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+97",
+                pdfUrl: "https://example.com/placeholder-book-97.pdf"
+            },
+            {
+                id: 98,
+                title: "Inferno",
+                author: "Dan Brown",
+                genre: "Mistério",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+98",
+                pdfUrl: "https://example.com/placeholder-book-98.pdf"
+            },
+            {
+                id: 99,
+                title: "A Cabana",
+                author: "William P. Young",
+                genre: "Drama",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+99",
+                pdfUrl: "https://example.com/placeholder-book-99.pdf"
+            },
+            {
+                id: 100,
+                title: "O Processo",
+                author: "Franz Kafka",
+                genre: "Clássico",
+                coverImage: "https://placehold.co/300x450/2563EB/FFFFFF?text=Livro+100",
+                pdfUrl: "https://example.com/placeholder-book-100.pdf"
+            }
+        ];
+        // --- FIM DA ÁREA DE CONFIGURAÇÃO DE DADOS ---
+
+
+        // Selecionando os elementos do HTML que vamos manipular
+        const bookGrid = document.getElementById('bookGrid');
+        const searchInput = document.getElementById('searchInput');
+        const genreFilterSelect = document.getElementById('genreFilter');
+        const noResultsMessage = document.getElementById('noResultsMessage');
+        // Elemento para o botão de limpar pesquisa
+        const clearSearchBtn = document.getElementById('clearSearchBtn');
+
+        // Variáveis para guardar o estado atual dos filtros
+        let currentSearchTerm = '';
+        let currentGenre = 'Todos';
+
+        /**
+         * Função principal para renderizar os livros na tela.
+         * Ela recebe uma lista de livros e cria os cards para cada um.
+         */
+        function renderBooks(booksToRender) {
+            // Limpa a grade de livros antes de adicionar os novos
+            bookGrid.innerHTML = '';
+
+            // Verifica se a lista de livros para renderizar está vazia
+            if (booksToRender.length === 0) {
+                bookGrid.classList.add('hidden');
+                noResultsMessage.classList.remove('hidden');
+            } else {
+                bookGrid.classList.remove('hidden');
+                noResultsMessage.classList.add('hidden');
+            
+                booksToRender.forEach(book => {
+                    const bookCard = document.createElement('div');
+                    bookCard.innerHTML = `
+                        <a href="${book.pdfUrl}" target="_blank" class="group block h-full bg-gray-800 rounded-xl border border-gray-700 overflow-hidden shadow-lg hover:shadow-cyan-500/50 transition-all duration-300 transform hover:-translate-y-1 hover:border-cyan-500">
+                            <div class="relative">
+                                <img src="${book.coverImage}" alt="Capa do livro ${book.title}" 
+                                     class="w-full book-cover" 
+                                     onerror="this.onerror=null;this.src='https://placehold.co/300x450/1F2937/FFFFFF?text=Capa+Indisponível';">
+                                <div class="absolute inset-0 bg-black bg-opacity-40 group-hover:bg-opacity-10 transition-all duration-300"></div>
+                            </div>
+                            <div class="p-4">
+                                <h3 class="font-bold text-base md:text-lg truncate text-gray-100 mb-1">${book.title}</h3>
+                                <p class="text-xs md:text-sm text-gray-400 font-medium">${book.author}</p>
+                                <span class="inline-block mt-2 px-2 py-0.5 text-xs font-semibold text-cyan-200 bg-cyan-700/30 rounded-full">${book.genre}</span>
+                            </div>
+                        </a>
+                    `;
+                    bookGrid.appendChild(bookCard);
+                });
+            }
+        }
+    
+        /**
+         * Função para criar e renderizar as opções do dropdown de gênero.
+         */
+        function renderGenreFilterOptions() {
+            // Limpa as opções existentes
+            genreFilterSelect.innerHTML = '';
+
+            // Extrai todos os gêneros únicos da lista de livros
+            const genres = ['Todos', ...new Set(books.map(book => book.genre))].sort();
+        
+            genres.forEach(genre => {
+                const option = document.createElement('option');
+                option.textContent = genre;
+                option.value = genre;
+                if (genre === 'Todos') {
+                    option.selected = true;
+                }
+                genreFilterSelect.appendChild(option);
+            });
+        }
+    
+        /**
+         * Função central que filtra os livros com base na pesquisa e no gênero selecionado.
+         */
+        function updateDisplay() {
+            let filteredBooks = books;
+
+            // 1. Filtrar por gênero
+            if (currentGenre !== 'Todos') {
+                filteredBooks = filteredBooks.filter(book => book.genre === currentGenre);
+            }
+
+            // 2. Filtrar pelo termo de pesquisa (no título ou autor)
+            if (currentSearchTerm) {
+                // Remove acentos e padroniza para minúsculas
+                const normalize = (text) => text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                
+                const normalizedSearchTerm = normalize(currentSearchTerm);
+                
+                filteredBooks = filteredBooks.filter(book =>
+                    normalize(book.title).includes(normalizedSearchTerm) ||
+                    normalize(book.author).includes(normalizedSearchTerm)
+                );
+            }
+
+            // Renderiza os livros que passaram por todos os filtros
+            renderBooks(filteredBooks);
+        }
+
+        /**
+         * Função para mostrar ou esconder o botão de limpar pesquisa.
+         */
+        function toggleClearButton() {
+            if (searchInput.value.length > 0) {
+                clearSearchBtn.classList.remove('hidden');
+            } else {
+                clearSearchBtn.classList.add('hidden');
+            }
+        }
+
+        // Adiciona os eventos para a barra de pesquisa e o dropdown de gênero
+        searchInput.addEventListener('input', (e) => {
+            currentSearchTerm = e.target.value;
+            toggleClearButton(); // Controla a visibilidade do botão
+            updateDisplay();
+        });
+
+        genreFilterSelect.addEventListener('change', (e) => {
+            currentGenre = e.target.value;
+            updateDisplay();
+        });
+
+        // Adiciona o evento para limpar a pesquisa
+        clearSearchBtn.addEventListener('click', () => {
+            searchInput.value = '';
+            currentSearchTerm = '';
+            toggleClearButton();
+            updateDisplay();
+        });
+
+        // Função que é executada quando a página termina de carregar
+        document.addEventListener('DOMContentLoaded', () => {
+            renderGenreFilterOptions();
+            updateDisplay(); // Renderiza todos os livros inicialmente
+            toggleClearButton(); // Garante o estado inicial do botão de limpar
+        });
+
+    </script>
+</body>
+</html>
